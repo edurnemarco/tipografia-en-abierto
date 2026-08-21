@@ -1,0 +1,98 @@
+:root {
+  --gap: 3vw;
+  --alto-imagen: 60vh;
+  --fondo: #f5f5f3;
+  --texto: #6b6b6b;
+  --texto-secundario: #6b6b6b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: -apple-system, 'Space Mono', Arial, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+h1 {
+  padding-left: var(--gap);
+  padding-top: 7vw;
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+/* Contenedor que ocupa toda la pantalla y centra la fila verticalmente */
+.viewport {
+  flex: 1;
+  min-height: 0; /* necesario para que el scroll interno funcione dentro de un flex */
+  width: 100vw;
+  display: flex;
+  align-items: center; /* centrado vertical */
+  overflow-x: auto; /* scroll horizontal si la fila es muy larga */
+  overflow-y: hidden;
+  gap: var(--gap); /* separación entre imágenes */
+  padding-left: var(--gap); /* mismo valor: margen izquierdo */
+  padding-right: var(--gap);
+  scroll-behavior: smooth;
+}
+
+.item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Caja vertical */
+.item.vertical {
+  width: calc(var(--alto-imagen) * 0.75);
+}
+
+/* Caja horizontal*/
+.item.horizontal {
+  width: calc(var(--alto-imagen) * 1.5);
+}
+
+.item img,
+.item video {
+  height: var(--alto-imagen); /* misma altura siempre, exacta */
+  width: 100%; /* ocupa todo el ancho de su caja */
+  object-fit: cover; /* recorta lo que sobre, sin deformar */
+  display: block;
+}
+
+.item .texto {
+  margin-top: 1rem;
+  width: 100%;
+  height: 3rem; /* altura fija, haya o no <p> */
+  overflow: hidden; /* por si algún texto es más largo de lo que cabe */
+}
+
+.item .texto h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.item .texto p {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--texto-secundario);
+}
+
+/* Barra de scroll discreta (opcional) */
+.viewport::-webkit-scrollbar {
+  height: 6px;
+}
+.viewport::-webkit-scrollbar-thumb {
+  background: #cfcfcf;
+  border-radius: 3px;
+}

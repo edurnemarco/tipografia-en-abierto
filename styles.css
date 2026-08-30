@@ -64,6 +64,11 @@ h1 {
   width: calc(var(--alto-imagen) * 1.5);
 }
 
+/* Caja cuadrado*/
+.item.cuadrado {
+  width: var(--alto-imagen);
+}
+
 .item img,
 .item video {
   height: var(--alto-imagen); /* misma altura siempre, exacta */

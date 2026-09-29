@@ -60,13 +60,31 @@ h1 {
 }
 
 /* Caja horizontal*/
-.item.horizontal {
-  width: calc(var(--alto-imagen) * 1.5);
-}
+/*.item.horizontal {
+  //width: calc(var(--alto-imagen) * 1.5);
+//}
 
 /* Caja cuadrado*/
 .item.cuadrado {
   width: var(--alto-imagen);
+}
+
+/* Verticales: recorte a una proporción fija (comportamiento actual) */
+.item.vertical img,
+.item.vertical video {
+  height: var(--alto-imagen);
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Horizontales: se ve la imagen completa, el ancho se adapta */
+.item.horizontal img,
+.item.horizontal video {
+  height: var(--alto-imagen);
+  width: auto; /* el ancho lo calcula el navegador según la proporción real */
+  object-fit: contain; /* por si acaso, nunca recorta ni deforma */
+  display: block;
 }
 
 .item img,

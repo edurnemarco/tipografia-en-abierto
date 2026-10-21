@@ -289,133 +289,74 @@
       </div>
     </div>
     <script>
-      (() => {
-        const vp = document.querySelector('.viewport');
+  (() => {
+    const vp = document.querySelector('.viewport');
 
-        // ¿quién hace el scroll horizontal: .viewport o la propia página? (se comprueba en cada uso)
-        function scroller() {
-          if (vp && /(auto|scroll)/.test(getComputedStyle(vp).overflowX) && vp.scrollWidth > vp.clientWidth + 2)
-            return vp;
-          return document.scrollingElement;
-        }
+    // ¿quién hace el scroll horizontal: .viewport o la propia página? (se comprueba en cada uso)
+    function scroller() {
+      if (vp && /(auto|scroll)/.test(getComputedStyle(vp).overflowX) && vp.scrollWidth > vp.clientWidth + 2) return vp;
+      return document.scrollingElement;
+    }
 
-        // ---------- estilos: dos flechas sencillas, sin animaciones ----------
-        const estilo = document.createElement('style');
-        estilo.textContent = `
-      #flechas { position: fixed; top: 0; right: 0; z-index: 50; display: flex; background: #fff; }
+    // ---------- estilos: solo la flecha, sin fondo ni cuadrados ----------
+    const estilo = document.createElement('style');
+    estilo.textContent = `
+      #flechas { position: fixed; top: 0; right: 0; z-index: 50; display: flex; } /* top lo calcula el script */
       #flechas button {
-        width: 48px; height: 48px; padding: 0; margin: 0; border: 0; border-radius: 0;
-        background: none; color: #0a0a0a; cursor: pointer;
+        width: 44px; height: 44px; padding: 0; margin: 0; border: 0; border-radius: 0;
+        background: none; color: inherit; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
       }
       #flechas button:disabled { opacity: 0.25; cursor: default; }
-      #flechas button:focus-visible { outline: 2px solid #0a0a0a; outline-offset: -4px; }
-      @media (pointer: coarse) { #flechas button { width: 56px; height: 56px; } }
+      #flechas button:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
+      @media (pointer: coarse) { #flechas button { width: 52px; height: 52px; } }
 
       .viewport { cursor: grab; }
       body.arrastrando, body.arrastrando * { cursor: grabbing !important; user-select: none; }
     `;
-        document.head.appendChild(estilo);
+    document.head.appendChild(estilo);
 
-        // ---------- las dos flechas (SVG, así no dependen de ninguna fuente) ----------
-        const flechas = document.createElement('div');
-        flechas.id = 'flechas';
+    // ---------- las dos flechas (SVG, así no dependen de ninguna fuente) ----------
+    const flechas = document.createElement('div');
+    flechas.id = 'flechas';
 
-        const izq = document.createElement('button');
-        izq.type = 'button';
-        izq.setAttribute('aria-label', 'anterior');
-        izq.innerHTML =
-          '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12H4M10 6l-6 6 6 6"/></svg>';
+    const izq = document.createElement('button');
+    izq.type = 'button';
+    izq.setAttribute('aria-label', 'anterior');
+    izq.innerHTML =
+      '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12H4M10 6l-6 6 6 6"/></svg>';
 
-        const der = document.createElement('button');
-        der.type = 'button';
-        der.setAttribute('aria-label', 'siguiente');
-        der.innerHTML =
-          '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M14 6l6 6-6 6"/></svg>';
+    const der = document.createElement('button');
+    der.type = 'button';
+    der.setAttribute('aria-label', 'siguiente');
+    der.innerHTML =
+      '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M14 6l6 6-6 6"/></svg>';
 
-        flechas.append(izq, der);
-        document.body.appendChild(flechas);
+    flechas.append(izq, der);
+    document.body.appendChild(flechas);
 
-        // ---------- mover ----------
-        function mover(dir) {
-          const s = scroller();
-          s.scrollBy({ left: dir * s.clientWidth * 0.8, behavior: 'smooth' }); // 'auto' = salto directo, sin deslizar
-        }
-        izq.addEventListener('click', () => {
-          mover(-1);
-          izq.blur();
-        });
-        der.addEventListener('click', () => {
-          mover(1);
-          der.blur();
-        });
+    // ---------- colocarlas justo encima de las imágenes ----------
+    function colocar() {
+      const items = document.querySelectorAll('.item');
+      if (!items.length) return;
+      let arriba = Infinity;
+      items.forEach((it) => { arriba = Math.min(arriba, it.getBoundingClientRect().top); }); // la foto más alta
+      flechas.style.top = Math.max(0, arriba - flechas.offsetHeight - 4) + 'px'; // 4px de aire; cámbialo si quieres
+    }
 
-        // ---------- rueda del ratón: la convierte en movimiento horizontal ----------
-        window.addEventListener(
-          'wheel',
-          (e) => {
-            if (e.ctrlKey) return; // el zoom con ctrl+rueda se deja como está
-            const s = scroller();
-            if (s.scrollWidth <= s.clientWidth) return;
-            if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // ya es horizontal (trackpad): no se toca
-            e.preventDefault();
-            s.scrollLeft += e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY; // deltaMode 1 = líneas (Firefox)
-          },
-          { passive: false },
-        );
+    // ---------- mover ----------
+    function mover(dir) {
+      const s = scroller();
+      s.scrollBy({ left: dir * s.clientWidth * 0.8, behavior: 'smooth' }); // 'auto' = salto directo, sin deslizar
+    }
+    izq.addEventListener('click', () => { mover(-1); izq.blur(); });
+    der.addEventListener('click', () => { mover(1); der.blur(); });
 
-        // ---------- teclado ----------
-        window.addEventListener('keydown', (e) => {
-          const s = scroller();
-          if (s.scrollWidth <= s.clientWidth) return;
-          const adelante = ['ArrowRight', 'ArrowDown', 'PageDown'];
-          const atras = ['ArrowLeft', 'ArrowUp', 'PageUp'];
-          if (adelante.includes(e.key) || (e.key === ' ' && !e.shiftKey)) mover(1);
-          else if (atras.includes(e.key) || (e.key === ' ' && e.shiftKey)) mover(-1);
-          else if (e.key === 'Home') s.scrollTo({ left: 0, behavior: 'smooth' });
-          else if (e.key === 'End') s.scrollTo({ left: s.scrollWidth, behavior: 'smooth' });
-          else return;
-          e.preventDefault();
-        });
-
-        // ---------- arrastrar con el ratón ----------
-        let arrastrando = false,
-          x0 = 0,
-          s0 = 0,
-          scr = null;
-        window.addEventListener('pointerdown', (e) => {
-          if (e.pointerType !== 'mouse' || e.button !== 0) return;
-          if (e.target.closest('#flechas')) return;
-          scr = scroller();
-          if (scr.scrollWidth <= scr.clientWidth) return;
-          arrastrando = true;
-          x0 = e.clientX;
-          s0 = scr.scrollLeft;
-          document.body.classList.add('arrastrando');
-        });
-        window.addEventListener('pointermove', (e) => {
-          if (arrastrando) scr.scrollLeft = s0 - (e.clientX - x0);
-        });
-        window.addEventListener('pointerup', () => {
-          arrastrando = false;
-          document.body.classList.remove('arrastrando');
-        });
-        document.addEventListener('dragstart', (e) => e.preventDefault()); // evita arrastrar la imagen en vez de la tira
-
-        // ---------- flecha apagada cuando ya no hay más en ese sentido ----------
-        function actualizar() {
-          const s = scroller();
-          const max = s.scrollWidth - s.clientWidth;
-          izq.disabled = s.scrollLeft < 5;
-          der.disabled = s.scrollLeft > max - 5;
-        }
-        window.addEventListener('scroll', actualizar, true); // true: también capta el scroll de .viewport
-        window.addEventListener('resize', actualizar);
-        window.addEventListener('load', actualizar);
-        document.querySelectorAll('img').forEach((i) => i.addEventListener('load', actualizar));
-        document.querySelectorAll('video').forEach((v) => v.addEventListener('loadedmetadata', actualizar));
-        setTimeout(actualizar, 1000);
-      })();
-    </script>
+    // ---------- rueda del ratón: la convierte en movimiento horizontal ----------
+    window.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) return; // el zoom con ctrl+rueda se deja como está
+      const s = scroller();
+      if (s.scrollWidth <= s.clientWidth) return;
+      if (Math.abs(e.deltaY)
   </body>
 </html>

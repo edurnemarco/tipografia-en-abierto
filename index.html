@@ -288,5 +288,152 @@
         </div>
       </div>
     </div>
+    <script>
+      (() => {
+        const vp = document.querySelector('.viewport');
+
+        // ¿quién hace el scroll horizontal: .viewport o la propia página? (se comprueba en cada uso)
+        function scroller() {
+          if (vp && /(auto|scroll)/.test(getComputedStyle(vp).overflowX) && vp.scrollWidth > vp.clientWidth + 2)
+            return vp;
+          return document.scrollingElement;
+        }
+
+        // ---------- estilos de las ayudas visuales ----------
+        const estilo = document.createElement('style');
+        estilo.textContent = `
+      #flecha-izq, #flecha-der {
+        position: fixed; top: 50%; transform: translateY(-50%); z-index: 50;
+        width: 56px; height: 56px; padding: 0; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px solid #0a0a0a; background: #fff; color: #0a0a0a;
+        font: 700 26px/1 "Space Mono", monospace; cursor: pointer;
+        transition: opacity 0.3s;
+      }
+      #flecha-izq { left: 16px; }
+      #flecha-der { right: 16px; animation: empujar 1.4s ease-in-out infinite; } /* se mueve para llamar la atención */
+      #flecha-izq.oculta, #flecha-der.oculta { opacity: 0; pointer-events: none; }
+      @keyframes empujar {
+        0%, 100% { transform: translateY(-50%) translateX(0); }
+        50% { transform: translateY(-50%) translateX(7px); }
+      }
+
+      #progreso {
+        position: fixed; left: 0; right: 0; bottom: 0; height: 8px; z-index: 50;
+        background: rgba(128, 128, 128, 0.35); pointer-events: none;
+      }
+      #progreso div { position: absolute; top: 0; bottom: 0; background: #ff5a36; }
+
+      .viewport { cursor: grab; }
+      body.arrastrando, body.arrastrando * { cursor: grabbing !important; user-select: none; }
+    `;
+        document.head.appendChild(estilo);
+
+        // ---------- elementos: flechas y barra de progreso ----------
+        const izq = document.createElement('button');
+        izq.id = 'flecha-izq';
+        izq.type = 'button';
+        izq.setAttribute('aria-label', 'anterior');
+        izq.textContent = '←';
+
+        const der = document.createElement('button');
+        der.id = 'flecha-der';
+        der.type = 'button';
+        der.setAttribute('aria-label', 'siguiente');
+        der.textContent = '→';
+
+        const progreso = document.createElement('div');
+        progreso.id = 'progreso';
+        const pulgar = document.createElement('div');
+        progreso.appendChild(pulgar);
+
+        document.body.append(izq, der, progreso);
+
+        // ---------- mover ----------
+        function mover(dir) {
+          const s = scroller();
+          s.scrollBy({ left: dir * s.clientWidth * 0.8, behavior: 'smooth' });
+        }
+        izq.addEventListener('click', () => {
+          mover(-1);
+          izq.blur();
+        });
+        der.addEventListener('click', () => {
+          mover(1);
+          der.blur();
+        });
+
+        // ---------- rueda del ratón: la convierte en movimiento horizontal ----------
+        window.addEventListener(
+          'wheel',
+          (e) => {
+            if (e.ctrlKey) return; // el zoom con ctrl+rueda se deja como está
+            const s = scroller();
+            if (s.scrollWidth <= s.clientWidth) return;
+            if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // ya es horizontal (trackpad): no se toca
+            e.preventDefault();
+            s.scrollLeft += e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY; // deltaMode 1 = líneas (Firefox)
+          },
+          { passive: false },
+        );
+
+        // ---------- teclado ----------
+        window.addEventListener('keydown', (e) => {
+          const s = scroller();
+          if (s.scrollWidth <= s.clientWidth) return;
+          const adelante = ['ArrowRight', 'ArrowDown', 'PageDown'];
+          const atras = ['ArrowLeft', 'ArrowUp', 'PageUp'];
+          if (adelante.includes(e.key) || (e.key === ' ' && !e.shiftKey)) mover(1);
+          else if (atras.includes(e.key) || (e.key === ' ' && e.shiftKey)) mover(-1);
+          else if (e.key === 'Home') s.scrollTo({ left: 0, behavior: 'smooth' });
+          else if (e.key === 'End') s.scrollTo({ left: s.scrollWidth, behavior: 'smooth' });
+          else return;
+          e.preventDefault();
+        });
+
+        // ---------- arrastrar con el ratón ----------
+        let arrastrando = false,
+          x0 = 0,
+          s0 = 0,
+          scr = null;
+        window.addEventListener('pointerdown', (e) => {
+          if (e.pointerType !== 'mouse' || e.button !== 0) return;
+          if (e.target.closest('#flecha-izq, #flecha-der')) return;
+          scr = scroller();
+          if (scr.scrollWidth <= scr.clientWidth) return;
+          arrastrando = true;
+          x0 = e.clientX;
+          s0 = scr.scrollLeft;
+          document.body.classList.add('arrastrando');
+        });
+        window.addEventListener('pointermove', (e) => {
+          if (arrastrando) scr.scrollLeft = s0 - (e.clientX - x0);
+        });
+        window.addEventListener('pointerup', () => {
+          arrastrando = false;
+          document.body.classList.remove('arrastrando');
+        });
+        document.addEventListener('dragstart', (e) => e.preventDefault()); // evita arrastrar la imagen en vez de la tira
+
+        // ---------- estado de las flechas y de la barra ----------
+        function actualizar() {
+          const s = scroller();
+          const max = s.scrollWidth - s.clientWidth;
+          const x = s.scrollLeft;
+          izq.classList.toggle('oculta', x < 5);
+          der.classList.toggle('oculta', x > max - 5);
+          progreso.style.display = max > 5 ? 'block' : 'none';
+          const ancho = s.clientWidth / s.scrollWidth;
+          pulgar.style.width = ancho * 100 + '%';
+          pulgar.style.left = (max > 0 ? (x / max) * (1 - ancho) * 100 : 0) + '%';
+        }
+        window.addEventListener('scroll', actualizar, true); // true: también capta el scroll de .viewport
+        window.addEventListener('resize', actualizar);
+        window.addEventListener('load', actualizar);
+        document.querySelectorAll('img').forEach((i) => i.addEventListener('load', actualizar));
+        document.querySelectorAll('video').forEach((v) => v.addEventListener('loadedmetadata', actualizar));
+        setTimeout(actualizar, 1000);
+      })();
+    </script>
   </body>
 </html>

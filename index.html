@@ -299,60 +299,47 @@
           return document.scrollingElement;
         }
 
-        // ---------- estilos de las ayudas visuales ----------
+        // ---------- estilos: dos flechas sencillas, sin animaciones ----------
         const estilo = document.createElement('style');
         estilo.textContent = `
-      #flecha-izq, #flecha-der {
-        position: fixed; top: 50%; transform: translateY(-50%); z-index: 50;
-        width: 56px; height: 56px; padding: 0; border-radius: 50%;
+      #flechas { position: fixed; top: 0; right: 0; z-index: 50; display: flex; background: #fff; }
+      #flechas button {
+        width: 48px; height: 48px; padding: 0; margin: 0; border: 0; border-radius: 0;
+        background: none; color: #0a0a0a; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
-        border: 2px solid #0a0a0a; background: #fff; color: #0a0a0a;
-        font: 700 26px/1 "Space Mono", monospace; cursor: pointer;
-        transition: opacity 0.3s;
       }
-      #flecha-izq { left: 16px; }
-      #flecha-der { right: 16px; animation: empujar 1.4s ease-in-out infinite; } /* se mueve para llamar la atención */
-      #flecha-izq.oculta, #flecha-der.oculta { opacity: 0; pointer-events: none; }
-      @keyframes empujar {
-        0%, 100% { transform: translateY(-50%) translateX(0); }
-        50% { transform: translateY(-50%) translateX(7px); }
-      }
-
-      #progreso {
-        position: fixed; left: 0; right: 0; bottom: 0; height: 8px; z-index: 50;
-        background: rgba(128, 128, 128, 0.35); pointer-events: none;
-      }
-      #progreso div { position: absolute; top: 0; bottom: 0; background: #ff5a36; }
+      #flechas button:disabled { opacity: 0.25; cursor: default; }
+      #flechas button:focus-visible { outline: 2px solid #0a0a0a; outline-offset: -4px; }
+      @media (pointer: coarse) { #flechas button { width: 56px; height: 56px; } }
 
       .viewport { cursor: grab; }
       body.arrastrando, body.arrastrando * { cursor: grabbing !important; user-select: none; }
     `;
         document.head.appendChild(estilo);
 
-        // ---------- elementos: flechas y barra de progreso ----------
+        // ---------- las dos flechas (SVG, así no dependen de ninguna fuente) ----------
+        const flechas = document.createElement('div');
+        flechas.id = 'flechas';
+
         const izq = document.createElement('button');
-        izq.id = 'flecha-izq';
         izq.type = 'button';
         izq.setAttribute('aria-label', 'anterior');
-        izq.textContent = '←';
+        izq.innerHTML =
+          '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12H4M10 6l-6 6 6 6"/></svg>';
 
         const der = document.createElement('button');
-        der.id = 'flecha-der';
         der.type = 'button';
         der.setAttribute('aria-label', 'siguiente');
-        der.textContent = '→';
+        der.innerHTML =
+          '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M14 6l6 6-6 6"/></svg>';
 
-        const progreso = document.createElement('div');
-        progreso.id = 'progreso';
-        const pulgar = document.createElement('div');
-        progreso.appendChild(pulgar);
-
-        document.body.append(izq, der, progreso);
+        flechas.append(izq, der);
+        document.body.appendChild(flechas);
 
         // ---------- mover ----------
         function mover(dir) {
           const s = scroller();
-          s.scrollBy({ left: dir * s.clientWidth * 0.8, behavior: 'smooth' });
+          s.scrollBy({ left: dir * s.clientWidth * 0.8, behavior: 'smooth' }); // 'auto' = salto directo, sin deslizar
         }
         izq.addEventListener('click', () => {
           mover(-1);
@@ -398,7 +385,7 @@
           scr = null;
         window.addEventListener('pointerdown', (e) => {
           if (e.pointerType !== 'mouse' || e.button !== 0) return;
-          if (e.target.closest('#flecha-izq, #flecha-der')) return;
+          if (e.target.closest('#flechas')) return;
           scr = scroller();
           if (scr.scrollWidth <= scr.clientWidth) return;
           arrastrando = true;
@@ -415,17 +402,12 @@
         });
         document.addEventListener('dragstart', (e) => e.preventDefault()); // evita arrastrar la imagen en vez de la tira
 
-        // ---------- estado de las flechas y de la barra ----------
+        // ---------- flecha apagada cuando ya no hay más en ese sentido ----------
         function actualizar() {
           const s = scroller();
           const max = s.scrollWidth - s.clientWidth;
-          const x = s.scrollLeft;
-          izq.classList.toggle('oculta', x < 5);
-          der.classList.toggle('oculta', x > max - 5);
-          progreso.style.display = max > 5 ? 'block' : 'none';
-          const ancho = s.clientWidth / s.scrollWidth;
-          pulgar.style.width = ancho * 100 + '%';
-          pulgar.style.left = (max > 0 ? (x / max) * (1 - ancho) * 100 : 0) + '%';
+          izq.disabled = s.scrollLeft < 5;
+          der.disabled = s.scrollLeft > max - 5;
         }
         window.addEventListener('scroll', actualizar, true); // true: también capta el scroll de .viewport
         window.addEventListener('resize', actualizar);
